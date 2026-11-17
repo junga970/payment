@@ -27,3 +27,11 @@ management:
   endpoint:
     health:
       show-details: always
+
+app:
+  outbox:
+    stream-key: payment:sync:stream   # Outbox 이벤트를 발행할 Redis Stream 키
+    max-retry-count: 3                # 발행 실패 누적 시 FAILED 전환 기준
+    poll-delay-ms: 1000               # Poller 실행 간격 (이전 실행 종료 후 대기)
+    poller:
+      enabled: true                   # false면 스케줄러 비활성화 (테스트에서 사용)
