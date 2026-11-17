@@ -1,0 +1,10 @@
+.gradle/
+build/
+.idea/
+*.iml
+out/
+.DS_Store
+
+# 환경변수 (비밀번호 등)
+.env
+bin/
