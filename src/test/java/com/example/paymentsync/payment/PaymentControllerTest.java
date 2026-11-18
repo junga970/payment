@@ -58,4 +58,40 @@ class PaymentControllerTest {
         mockMvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body(orderId, 0)))
                 .andExpect(status().isBadRequest());
     }
+
+    private String callback(String orderId, String key, String status) {
+        return "{\"orderId\":\"" + orderId + "\",\"pgTransactionKey\":\"" + key + "\",\"status\":\"" + status + "\"}";
+    }
+
+    @Test
+    void 콜백으로_COMPLETED_반영되고_중복_콜백은_200으로_멱등_처리() throws Exception {
+        mockMvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body(orderId, 1000)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/payments/callback").contentType(MediaType.APPLICATION_JSON)
+                        .content(callback(orderId, "pg-key", "COMPLETED")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+        // 동일 콜백 재수신, 상반된 상태의 콜백도 200 + 기존 확정 상태 유지
+        mockMvc.perform(post("/api/payments/callback").contentType(MediaType.APPLICATION_JSON)
+                        .content(callback(orderId, "pg-key", "COMPLETED")))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/payments/callback").contentType(MediaType.APPLICATION_JSON)
+                        .content(callback(orderId, "pg-key", "FAILED")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
+    void 없는_주문_콜백은_404_키_불일치는_400() throws Exception {
+        mockMvc.perform(post("/api/payments/callback").contentType(MediaType.APPLICATION_JSON)
+                        .content(callback(orderId, "pg-key", "COMPLETED")))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/api/payments").contentType(MediaType.APPLICATION_JSON).content(body(orderId, 1000)))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/payments/callback").contentType(MediaType.APPLICATION_JSON)
+                        .content(callback(orderId, "wrong-key", "COMPLETED")))
+                .andExpect(status().isBadRequest());
+    }
 }

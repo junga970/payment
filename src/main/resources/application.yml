@@ -42,3 +42,9 @@ app:
       name: consumer-1
       batch-size: 10
       poll-delay-ms: 1000
+    dlq-key: payment:sync:dlq         # 최대 재시도 초과 메시지를 보내는 DLQ 스트림
+    recovery:
+      enabled: true                   # false면 Pending 복구 스케줄러 비활성화 (테스트에서 사용)
+      poll-delay-ms: 3000
+      min-idle-ms: 3000               # PEL에 이 시간 이상 머문 메시지만 회수
+      max-delivery-count: 3           # 전달 횟수가 이 값에 도달하면 DLQ 이관
