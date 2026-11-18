@@ -35,3 +35,10 @@ app:
     poll-delay-ms: 1000               # Poller 실행 간격 (이전 실행 종료 후 대기)
     poller:
       enabled: true                   # false면 스케줄러 비활성화 (테스트에서 사용)
+  sync:
+    consumer:
+      enabled: true                   # false면 컨슈머 비활성화 (테스트에서 사용)
+      group: payment-sync-group
+      name: consumer-1
+      batch-size: 10
+      poll-delay-ms: 1000

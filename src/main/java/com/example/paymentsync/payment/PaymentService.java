@@ -2,7 +2,9 @@ package com.example.paymentsync.payment;
 
 import com.example.paymentsync.outbox.OutboxEvent;
 import com.example.paymentsync.outbox.OutboxEventRepository;
+import com.example.paymentsync.pg.PgPaymentStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.paymentsync.pg.PgPaymentStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,6 +51,17 @@ public class PaymentService {
         outboxEventRepository.save(new OutboxEvent(
                 AGGREGATE_TYPE, orderId, EVENT_TYPE_SYNC_REQUESTED, toPayload(payment)));
         return payment;
+    }
+
+    /** PG 조회 결과를 Payment 상태에 반영한다. 이미 확정된 건이면 도메인 검증에서 예외가 발생한다. */
+    @Transactional
+    public void applyPgResult(String orderId, PgPaymentStatus pgStatus) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new IllegalStateException("Payment not found: orderId=" + orderId));
+        switch (pgStatus) {
+            case COMPLETED -> payment.complete();
+            case FAILED -> payment.fail();
+        }
     }
 
     private String toPayload(Payment payment) {

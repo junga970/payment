@@ -27,18 +27,27 @@ public class OutboxPublisher {
     private final StringRedisTemplate redisTemplate;
     private final String streamKey;
     private final int maxRetryCount;
+    private final boolean pollerEnabled;
 
     public OutboxPublisher(OutboxEventRepository outboxEventRepository,
                            StringRedisTemplate redisTemplate,
                            @Value("${app.outbox.stream-key}") String streamKey,
-                           @Value("${app.outbox.max-retry-count}") int maxRetryCount) {
+                           @Value("${app.outbox.max-retry-count}") int maxRetryCount,
+                           @Value("${app.outbox.poller.enabled}") boolean pollerEnabled) {
         this.outboxEventRepository = outboxEventRepository;
         this.redisTemplate = redisTemplate;
         this.streamKey = streamKey;
         this.maxRetryCount = maxRetryCount;
+        this.pollerEnabled = pollerEnabled;
     }
 
     @Scheduled(fixedDelayString = "${app.outbox.poll-delay-ms}")
+    void scheduledPublish() {
+        if (pollerEnabled) {
+            publishPendingEvents();
+        }
+    }
+
     public void publishPendingEvents() {
         List<OutboxEvent> events = outboxEventRepository.findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus.INIT);
         for (OutboxEvent event : events) {
